@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 
 import { ethers } from 'ethers';
 
@@ -15,10 +16,11 @@ import { Hidden, MuiButton, MuiTypography, NextLink, MuiTextField } from '../com
 import { pxToRem } from '../../utils/font';
 
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
-import { setWalletAddress, setSigner, setWalletConnected, setUserId } from '../../reducers/masterSlice';
+import { setWalletAddress, setSigner, setWalletConnected, setUserId, setChainId } from '../../reducers/masterSlice';
 import { shortenAddress } from '../../utils/web3';
 
-import { useMoralisWeb3Api } from 'react-moralis';
+import { useMoralis, useMoralisWeb3Api } from 'react-moralis';
+import { useRouter } from 'next/router';
 const APP_BAR_HEIGHT: number = 72;
 
 const AppbarContainer = styled(AppBar)(({ theme }) => ({
@@ -60,14 +62,14 @@ interface NavbarProps {
 }
 
 function Navbar({ onOpenSidebar }: NavbarProps): JSX.Element {
-  const { address } = useAppSelector((state) => state.master);
+  const { address, chainId } = useAppSelector((state) => state.master);
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const [wallet, setWallet] = useState<boolean>(false);
   const [search, setSearch] = useState<any>();
 
   useEffect(() => {
     let provider: any;
-    console.log('window?.ethereum: ', window?.ethereum.selectedAddress);
     provider = new ethers.providers.Web3Provider(window?.ethereum);
     if (wallet && typeof window !== undefined) {
       provider
@@ -76,6 +78,7 @@ function Navbar({ onOpenSidebar }: NavbarProps): JSX.Element {
           Login_Register_Api(account && account[0]);
           dispatch(setWalletAddress(account[0]));
           dispatch(setSigner(provider.getSigner(account[0])));
+          dispatch(setChainId(window?.ethereum?.chainId));
         })
         .catch((err: Error) => console.log(err));
       //@ts-ignore
@@ -83,12 +86,19 @@ function Navbar({ onOpenSidebar }: NavbarProps): JSX.Element {
         Login_Register_Api(account && account[0]);
         dispatch(setWalletAddress(account[0]));
         dispatch(setSigner(provider.getSigner(account && account[0])));
+        dispatch(setChainId(window?.ethereum?.chainId));
+      });
+      //@ts-ignore
+      ethereum.on('chainChanged', (_chainId: chainId) => {
+        dispatch(setChainId(_chainId));
+        window.location.reload();
       });
     } else if (!wallet) {
       //@ts-ignore
       ethereum.on('disconnect', (err: Error) => {
         console.log(err);
       });
+      dispatch(setChainId(undefined));
       dispatch(setWalletAddress(''));
       dispatch(setSigner({}));
     }
@@ -132,7 +142,11 @@ function Navbar({ onOpenSidebar }: NavbarProps): JSX.Element {
               placeholder="Search items, collections and accounts"
               InputProps={{
                 endAdornment: (
-                  <IconButton>
+                  <IconButton
+                    onClick={() => {
+                      router.push(`/asset/${search}`);
+                    }}
+                  >
                     <SearchIcon />
                   </IconButton>
                 )

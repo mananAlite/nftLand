@@ -110,7 +110,6 @@ export default function CreateCollection(): JSX.Element {
                 depolyERC721Contract(address, values.name, values.symbol, true, values.hardCap, factoryContract, signer)
                   .then(async (res) => {
                     await res.wait();
-                    console.log('res: ', res);
                     getContractsDetails(address, factoryContract)
                       .then((res) => {
                         const apiBody: apiBody = {
